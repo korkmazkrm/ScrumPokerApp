@@ -1,0 +1,613 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrum Poker Real-Time</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <style>
+        :root {
+            --primary: #007bff;
+            --success: #28a745;
+            --bg: #f0f2f5;
+            --white: #ffffff;
+            --text: #333;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text);
+        }
+
+        .container {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 650px;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .card {
+            border: 2px solid #ddd;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: bold;
+            background: white;
+        }
+
+            .card:hover {
+                border-color: var(--primary);
+                transform: translateY(-2px);
+            }
+
+            .card.selected {
+                background: var(--primary) !important;
+                color: white !important;
+                border-color: var(--primary) !important;
+            }
+
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            background: #fff;
+        }
+
+        .admin-controls {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #ffeeba;
+        }
+
+        .share-box {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .history-section, .task-list-section, .players-section {
+            margin-top: 30px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+        }
+
+        .history-item, .task-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-votes {
+            color: #666;
+            font-style: italic;
+            margin-top: 5px;
+        }
+
+        .task-counter {
+            float: right;
+            font-size: 0.7em;
+            background: #eee;
+            padding: 4px 8px;
+            border-radius: 5px;
+            color: #555;
+        }
+
+        input, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-weight: bold;
+        }
+
+            button.secondary {
+                background: #6c757d;
+            }
+
+        .admin-btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+            .admin-btn-group button {
+                margin: 0;
+                flex: 1;
+            }
+
+        .icon-btn {
+            width: auto;
+            padding: 8px 12px;
+            margin: 0 2px;
+            font-size: 0.9em;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: #212529;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-info {
+            background: var(--info);
+            color: white;
+        }
+
+        .badge {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .modal-close {
+            cursor: pointer;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #999;
+        }
+
+        .admin-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+            .admin-option input {
+                width: auto;
+                margin: 0;
+            }
+
+        .waiting-msg {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+            background: #fdfdfe;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .free-text-vote-area {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+            .free-text-vote-area input {
+                margin: 0;
+                flex: 1;
+            }
+
+            .free-text-vote-area button {
+                width: auto;
+                margin: 0;
+                padding: 12px 20px;
+            }
+
+        /* TOAST NOTIFICATION */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateX(20px);
+            transition: 0.3s all;
+            pointer-events: auto;
+        }
+
+            .toast.show {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+        .toast-warning {
+            border-left: 5px solid var(--warning);
+        }
+
+        .toast-info {
+            border-left: 5px solid var(--info);
+        }
+    </style>
+</head>
+<body>
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div class="container">
+        <div id="loginArea">
+            <h2 style="text-align:center">Scrum Poker</h2>
+            <div class="entry-buttons">
+                <button onclick="toggleModal('createRoomModal', true)"><i class="fas fa-plus-circle"></i> Oda Oluştur</button>
+                <button class="secondary" onclick="toggleModal('joinRoomModal', true)"><i class="fas fa-sign-in-alt"></i> Odaya Katıl</button>
+            </div>
+        </div>
+
+        <div id="gameArea" style="display:none">
+            <div class="task-counter" id="taskCounterDisplay">Task: 0 / 0</div>
+            <div id="shareArea" class="share-box" style="display:none">
+                <strong>Paylaşım Linki:</strong> <br>
+                <span id="shareLink"></span>
+            </div>
+            <div class="players-section">
+                <strong><i class="fas fa-users"></i> Katılımcılar</strong>
+                <div id="playersList" style="margin-top:10px"></div>
+            </div>
+            <div id="waitingArea" class="waiting-msg" style="display:none"><i class="fas fa-spinner fa-spin"></i> Admin'in seansı başlatması bekleniyor...</div>
+            <div id="votingArea" style="display:none; margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px;">
+                <h2 id="currentTaskTitle">Task Yükleniyor...</h2>
+                <div id="voteInputContainer"></div>
+            </div>
+            <div id="adminPanel" class="admin-controls" style="display:none">
+                <strong>Yönetici Paneli</strong>
+                <div id="startBtnArea"><button class="btn-success" onclick="invokeServer('StartRoom')"><i class="fas fa-play"></i> Seansı Başlat (Start)</button></div>
+                <div id="activeAdminControls" style="display:none">
+                    <div class="admin-option"><input type="checkbox" id="peekVotesCheckbox" onchange="onPeekChange()"><label for="peekVotesCheckbox">Seçimleri anlık gör</label></div>
+                    <div class="admin-btn-group">
+                        <button onclick="invokeServer('ShowVotes')"><i class="fas fa-eye"></i> Show</button>
+                        <button class="secondary" onclick="safeNextTask()"><i class="fas fa-step-forward"></i> Next</button>
+                        <button class="btn-info" onclick="toggleModal('addTaskModal', true)"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                </div>
+                <div id="preStartAdminControls"><button style="background:#17a2b8; margin-top:10px;" onclick="toggleModal('addTaskModal', true)"><i class="fas fa-plus"></i> Yeni Task Ekle</button></div>
+                <div class="task-list-section"><strong><i class="fas fa-list"></i> Tüm Tasklar</strong><div id="adminTaskList"></div></div>
+            </div>
+            <div class="history-section"><h3><i class="fas fa-history"></i> Oylama Geçmişi</h3><div id="historyList"></div></div>
+        </div>
+    </div>
+
+    <div id="createRoomModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Yeni Oda Oluştur</h3><span class="modal-close" onclick="toggleModal('createRoomModal', false)">&times;</span></div>
+            <input type="text" id="adminName" placeholder="Adınız">
+            <input type="text" id="roomName" placeholder="Oda Adı">
+            <div class="admin-option">
+                <input type="checkbox" id="freeTextCheck" onchange="document.getElementById('optArea').style.display = this.checked ? 'none' : 'block'">
+                <label for="freeTextCheck">Serbest Metin Oylaması (Free Text)</label>
+            </div>
+            <div id="optArea">
+                <label style="font-size:0.8em; font-weight:bold; color:#666">Puan Seçenekleri</label>
+                <input type="text" id="estimateOptions" value="0.5, 1, 2, 3, 5, 8, 13, 21, ?, ☕">
+            </div>
+            <button onclick="startSession(true)">Odayı Başlat</button>
+        </div>
+    </div>
+
+    <div id="joinRoomModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Odaya Katıl</h3><span class="modal-close" onclick="toggleModal('joinRoomModal', false)">&times;</span></div>
+            <input type="text" id="participantName" placeholder="Adınız"><input type="text" id="roomIdInput" placeholder="Oda ID"><button onclick="startSession(false)">Giriş Yap</button>
+        </div>
+    </div>
+
+    <div id="addTaskModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Yeni Task Ekle</h3><span class="modal-close" onclick="toggleModal('addTaskModal', false)">&times;</span></div>
+            <input type="text" id="instantTask" placeholder="Task başlığını girin..."><button onclick="addInstantTask()">Ekle</button>
+        </div>
+    </div>
+
+    <div id="editTaskModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Task Düzenle</h3><span class="modal-close" onclick="toggleModal('editTaskModal', false)">&times;</span></div>
+            <input type="hidden" id="editTaskId"><input type="text" id="editTaskTitle"><button onclick="updateTask()">Güncelle</button>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="confirmTitle">Emin misiniz?</h3><span class="modal-close" onclick="closeConfirm(false)">&times;</span></div>
+            <p id="confirmMessage" style="margin: 15px 0; color: #555;"></p>
+            <div style="display: flex; gap: 10px;"><button id="confirmBtn" class="btn-danger" onclick="closeConfirm(true)">Evet</button><button class="secondary" onclick="closeConfirm(false)">İptal</button></div>
+        </div>
+    </div>
+
+    <script>
+        const connection = new signalR.HubConnectionBuilder().withUrl("/pokerHub").withAutomaticReconnect().build();
+        let activeRoomId = "";
+        let lastRoomState = null;
+        let confirmCallback = null;
+
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const rId = params.get('room');
+            if (rId) {
+                const roomInput = document.getElementById("roomIdInput");
+                roomInput.value = rId;
+                roomInput.disabled = true;
+                roomInput.style.backgroundColor = "#e9ecef";
+                toggleModal('joinRoomModal', true);
+            }
+        };
+
+        // TOAST MANAGEMENT
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            const icon = type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+            toast.innerHTML = `<i class="fas fa-${icon}"></i> <span>${message}</span>`;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        connection.on("PeekStatusChanged", (isPeeking) => {
+            if (isPeeking) {
+                showToast("Admin şu an oyları anlık olarak görüyor.", "warning");
+            } else {
+                showToast("Admin anlık izlemeyi kapattı.", "info");
+            }
+            refreshCurrentRoomUI();
+        });
+
+        async function onPeekChange() {
+            const isChecked = document.getElementById("peekVotesCheckbox").checked;
+            await connection.invoke("TogglePeekStatus", activeRoomId, isChecked);
+        }
+
+        function toggleModal(id, show, data = null) {
+            const modal = document.getElementById(id);
+            modal.style.display = show ? "flex" : "none";
+            if (!show) {
+                const inputs = modal.querySelectorAll('input[type="text"]:not(#estimateOptions)');
+                inputs.forEach(i => { if (!i.disabled) i.value = ""; });
+            } else {
+                if (id === 'editTaskModal' && data) {
+                    document.getElementById("editTaskId").value = data.id;
+                    document.getElementById("editTaskTitle").value = data.title;
+                }
+                const firstInput = modal.querySelector('input[type="text"]:not(#estimateOptions):not([disabled])');
+                if (firstInput) firstInput.focus();
+            }
+        }
+
+        function openConfirm(title, message, callback) {
+            document.getElementById("confirmTitle").innerText = title;
+            document.getElementById("confirmMessage").innerText = message;
+            confirmCallback = callback;
+            document.getElementById("confirmModal").style.display = "flex";
+        }
+
+        function closeConfirm(result) {
+            document.getElementById("confirmModal").style.display = "none";
+            if (result && confirmCallback) confirmCallback();
+            confirmCallback = null;
+        }
+
+        async function startSession(isAdmin) {
+            const nameId = isAdmin ? "adminName" : "participantName";
+            const user = document.getElementById(nameId).value;
+            if (!user) return alert("Lütfen adınızı girin");
+            try {
+                if (connection.state === "Disconnected") await connection.start();
+                if (isAdmin) {
+                    const rName = document.getElementById("roomName").value;
+                    const options = document.getElementById("estimateOptions").value.split(',').map(x => x.trim()).filter(x => x);
+                    const freeText = document.getElementById("freeTextCheck").checked;
+                    activeRoomId = await connection.invoke("CreateRoom", rName, user, [], options, freeText);
+                    const link = window.location.origin + window.location.pathname + "?room=" + activeRoomId;
+                    document.getElementById("shareLink").innerText = link;
+                    document.getElementById("shareArea").style.display = "block";
+                    toggleModal('createRoomModal', false);
+                } else {
+                    activeRoomId = document.getElementById("roomIdInput").value;
+                    toggleModal('joinRoomModal', false);
+                }
+                await connection.invoke("JoinRoom", activeRoomId, user);
+                document.getElementById("loginArea").style.display = "none";
+                document.getElementById("gameArea").style.display = "block";
+            } catch (err) { alert("Hata: " + err.message); }
+        }
+
+        connection.on("NewTaskTriggered", () => {
+            document.querySelectorAll('.poker-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById("voteInputContainer").innerHTML = "";
+        });
+
+        function refreshCurrentRoomUI() { if (lastRoomState) renderRoom(lastRoomState); }
+        connection.on("RoomUpdated", (room) => { if (room.roomId !== activeRoomId) return; lastRoomState = room; renderRoom(room); });
+
+        function renderRoom(room) {
+            const isAdmin = connection.connectionId === room.adminConnectionId;
+            // peekVotesCheckbox değerini DOM'dan okuyoruz
+            const peekEnabled = document.getElementById("peekVotesCheckbox")?.checked || false;
+
+            if (isAdmin) {
+                document.getElementById("adminPanel").style.display = "block";
+                document.getElementById("startBtnArea").style.display = room.isStarted ? "none" : "block";
+                document.getElementById("activeAdminControls").style.display = room.isStarted ? "block" : "none";
+                document.getElementById("preStartAdminControls").style.display = room.isStarted ? "none" : "block";
+                const adminTaskHtml = room.tasks.map((t, index) => {
+                    const canEditOrDelete = index >= room.currentTaskIndex && !(index === room.currentTaskIndex && room.isVotesRevealed);
+                    return `<div class="task-item"><span>${index + 1}. ${t.title} ${index === room.currentTaskIndex && room.isStarted ? '<span class="badge">Aktif</span>' : ''}</span>
+                        <div>${canEditOrDelete ? `<button class="icon-btn btn-warning" onclick="toggleModal('editTaskModal', true, {id:'${t.id}', title:'${t.title}'})"><i class="fas fa-edit"></i></button>
+                        <button class="icon-btn btn-danger" onclick="safeDeleteTask('${t.id}')"><i class="fas fa-trash-alt"></i></button>` : ''}</div></div>`;
+                }).join('');
+                document.getElementById("adminTaskList").innerHTML = adminTaskHtml;
+            }
+
+            document.getElementById("waitingArea").style.display = room.isStarted ? "none" : (isAdmin ? "none" : "block");
+            document.getElementById("votingArea").style.display = room.isStarted ? "block" : "none";
+
+            const totalTasks = room.tasks.length;
+            const currentIdx = totalTasks > 0 ? Math.min(room.currentTaskIndex + 1, totalTasks) : 0;
+            document.getElementById("taskCounterDisplay").innerText = `Task: ${currentIdx} / ${totalTasks}`;
+            document.getElementById("currentTaskTitle").innerText = room.activeTask ? room.activeTask.title : (totalTasks > 0 && room.isStarted ? "Oylama Bitti" : "Task Bekleniyor...");
+
+            const container = document.getElementById("voteInputContainer");
+            if (room.isVotesRevealed || !room.activeTask) {
+                container.innerHTML = "";
+            }
+            else if (container.innerHTML === "") {
+                if (room.isFreeText) {
+                    container.innerHTML = `<div class="free-text-vote-area">
+                            <input type="text" id="freeTextInput" placeholder="Puan/Efor değerini girin...">
+                            <button onclick="sendFreeTextVote()">Gönder</button>
+                        </div>`;
+                } else {
+                    container.innerHTML = `<div class="card-grid" id="cardGrid">${room.estimateOptions.map(opt => `<div class="card poker-card" onclick="vote(this, '${opt}')">${opt}</div>`).join('')}</div>`;
+                }
+            }
+
+            const list = document.getElementById("playersList");
+            list.innerHTML = room.players.map(p => {
+                let d = "⏳";
+                if (room.isVotesRevealed) d = p.vote || '-';
+                else if (p.hasVoted) d = (isAdmin && peekEnabled) ? `👁️ ${p.vote}` : "✅";
+                if (!room.isStarted) d = "";
+                return `<div class="player-row"><span>${p.name} ${p.connectionId === room.adminConnectionId ? '<span class="badge">Admin</span>' : ''}</span><strong>${d}</strong></div>`;
+            }).join('');
+
+            const historyList = document.getElementById("historyList");
+            historyList.innerHTML = room.history.map(h => `<div class="history-item"><div><strong>${h.title}</strong><div class="history-votes">${h.results.map(r => `${r.name}: ${r.vote || '-'}`).join(' | ')}</div></div></div>`).reverse().join('');
+        }
+
+        connection.on("Error", (msg) => alert(msg));
+        async function vote(el, val) {
+            if (!lastRoomState || !lastRoomState.isStarted || !lastRoomState.activeTask) return;
+            document.querySelectorAll('.poker-card').forEach(c => c.classList.remove('selected'));
+            if (el) el.classList.add('selected');
+            await connection.invoke("SendVote", activeRoomId, val);
+        }
+
+        async function sendFreeTextVote() {
+            const val = document.getElementById("freeTextInput").value;
+            if (!val) return alert("Lütfen bir değer girin!");
+            await vote(null, val);
+        }
+
+        async function invokeServer(method) { await connection.invoke(method, activeRoomId); }
+        async function safeNextTask() {
+            if (!lastRoomState) return;
+            const anyVotes = lastRoomState.players.some(p => p.hasVoted);
+            const votesRevealed = lastRoomState.isVotesRevealed;
+            if (!anyVotes) {
+                openConfirm("Uyarı", "Henüz kimse oy vermedi. Geçmek istediğinize emin misiniz?", async () => { await invokeServer('NextTask'); });
+                return;
+            }
+            if (anyVotes && !votesRevealed) {
+                openConfirm("Dikkat", "Oylama sonuçlarını paylaşmadınız. Geçmek istediğinize emin misiniz?", async () => { await invokeServer('NextTask'); });
+                return;
+            }
+            await invokeServer('NextTask');
+        }
+        async function safeDeleteTask(id) { openConfirm("Silme Onayı", "Bu taskı silmek istediğinize emin misiniz?", async () => { await connection.invoke("DeleteTask", activeRoomId, id); }); }
+        async function addInstantTask() {
+            const title = document.getElementById("instantTask").value;
+            if (title) { await connection.invoke("AddTasks", activeRoomId, [title]); toggleModal('addTaskModal', false); }
+        }
+        async function updateTask() {
+            const id = document.getElementById("editTaskId").value;
+            const title = document.getElementById("editTaskTitle").value;
+            if (title) { await connection.invoke("UpdateTask", activeRoomId, id, title); toggleModal('editTaskModal', false); }
+        }
+    </script>
+</body>
+</html>
