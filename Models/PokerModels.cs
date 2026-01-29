@@ -4,6 +4,7 @@ public class Player
 {
     public string ConnectionId { get; set; } = "";
     public string Name { get; set; } = "";
+    public string AvatarUrl { get; set; } = "";
     public string Vote { get; set; } = "";
     public bool HasVoted => !string.IsNullOrEmpty(Vote);
 }
@@ -18,6 +19,7 @@ public class ScrumTask
 public class CompletedTask
 {
     public string Title { get; set; } = "";
+    public double? Average { get; set; } // YENİ: Ortalama puan (Free text değilse)
     public List<PlayerResult> Results { get; set; } = new();
 }
 
@@ -33,7 +35,7 @@ public class PokerRoom
     public string RoomName { get; set; } = "";
     public string AdminConnectionId { get; set; } = "";
     public bool IsStarted { get; set; } = false;
-    public bool IsFreeText { get; set; } = false; // YENİ: Serbest metin modu
+    public bool IsFreeText { get; set; } = false;
     public List<string> EstimateOptions { get; set; } = new();
     public List<ScrumTask> Tasks { get; set; } = new();
     public int CurrentTaskIndex { get; set; } = 0;

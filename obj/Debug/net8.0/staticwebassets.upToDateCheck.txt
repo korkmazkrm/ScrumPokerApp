@@ -1,1 +1,2 @@
+wwwroot\images\avatar1.png
 wwwroot\index.html

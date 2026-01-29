@@ -68,9 +68,24 @@
         .player-row {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             padding: 12px;
             border-bottom: 1px solid #eee;
             background: #fff;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar-small {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 1px solid #ddd;
+            object-fit: cover;
         }
 
         .admin-controls {
@@ -107,19 +122,16 @@
             align-items: center;
         }
 
-        .history-votes {
-            color: #666;
-            font-style: italic;
-            margin-top: 5px;
-        }
-
-        .task-counter {
-            float: right;
-            font-size: 0.7em;
-            background: #eee;
-            padding: 4px 8px;
-            border-radius: 5px;
-            color: #555;
+        .avg-badge {
+            background: #6f42c1;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
 
         input, textarea, button {
@@ -179,11 +191,6 @@
             color: white;
         }
 
-        .btn-info {
-            background: var(--info);
-            color: white;
-        }
-
         .badge {
             background: var(--primary);
             color: white;
@@ -221,59 +228,28 @@
             margin-bottom: 15px;
         }
 
-        .modal-close {
-            cursor: pointer;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #999;
-        }
-
-        .admin-option {
+        .avatar-selection {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 10px;
-            font-size: 0.9em;
-            font-weight: bold;
-        }
-
-            .admin-option input {
-                width: auto;
-                margin: 0;
-            }
-
-        .waiting-msg {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-style: italic;
-            background: #fdfdfe;
-            border: 1px dashed #ccc;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-
-        .free-text-vote-area {
-            background: #e9ecef;
-            padding: 15px;
-            border-radius: 8px;
-            display: flex;
+            justify-content: center;
             gap: 10px;
-            align-items: center;
+            margin: 15px 0;
         }
 
-            .free-text-vote-area input {
-                margin: 0;
-                flex: 1;
+        .avatar-choice {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: 0.2s;
+            object-fit: cover;
+        }
+
+            .avatar-choice.selected {
+                border-color: var(--primary);
+                background: #e7f3ff;
             }
 
-            .free-text-vote-area button {
-                width: auto;
-                margin: 0;
-                padding: 12px 20px;
-            }
-
-        /* TOAST NOTIFICATION */
         .toast-container {
             position: fixed;
             top: 20px;
@@ -303,18 +279,29 @@
                 transform: translateX(0);
             }
 
-        .toast-warning {
-            border-left: 5px solid var(--warning);
+        .waiting-msg {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+            background: #fdfdfe;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
 
-        .toast-info {
-            border-left: 5px solid var(--info);
+        .avg-display {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f0f7ff;
+            border-radius: 8px;
+            border: 1px solid #cce5ff;
         }
     </style>
 </head>
 <body>
     <div id="toastContainer" class="toast-container"></div>
-
     <div class="container">
         <div id="loginArea">
             <h2 style="text-align:center">Scrum Poker</h2>
@@ -326,28 +313,23 @@
 
         <div id="gameArea" style="display:none">
             <div class="task-counter" id="taskCounterDisplay">Task: 0 / 0</div>
-            <div id="shareArea" class="share-box" style="display:none">
-                <strong>Paylaşım Linki:</strong> <br>
-                <span id="shareLink"></span>
-            </div>
-            <div class="players-section">
-                <strong><i class="fas fa-users"></i> Katılımcılar</strong>
-                <div id="playersList" style="margin-top:10px"></div>
-            </div>
+            <div id="shareArea" class="share-box"><strong>Paylaşım Linki:</strong> <br><span id="shareLink"></span></div>
+            <div class="players-section"><strong><i class="fas fa-users"></i> Katılımcılar</strong><div id="playersList" style="margin-top:10px"></div></div>
             <div id="waitingArea" class="waiting-msg" style="display:none"><i class="fas fa-spinner fa-spin"></i> Admin'in seansı başlatması bekleniyor...</div>
             <div id="votingArea" style="display:none; margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px;">
                 <h2 id="currentTaskTitle">Task Yükleniyor...</h2>
+                <div id="averageDisplayArea"></div>
                 <div id="voteInputContainer"></div>
             </div>
             <div id="adminPanel" class="admin-controls" style="display:none">
                 <strong>Yönetici Paneli</strong>
-                <div id="startBtnArea"><button class="btn-success" onclick="invokeServer('StartRoom')"><i class="fas fa-play"></i> Seansı Başlat (Start)</button></div>
+                <div id="startBtnArea"><button class="btn-success" onclick="invokeServer('StartRoom')"><i class="fas fa-play"></i> Seansı Başlat</button></div>
                 <div id="activeAdminControls" style="display:none">
                     <div class="admin-option"><input type="checkbox" id="peekVotesCheckbox" onchange="onPeekChange()"><label for="peekVotesCheckbox">Seçimleri anlık gör</label></div>
                     <div class="admin-btn-group">
                         <button onclick="invokeServer('ShowVotes')"><i class="fas fa-eye"></i> Show</button>
                         <button class="secondary" onclick="safeNextTask()"><i class="fas fa-step-forward"></i> Next</button>
-                        <button class="btn-info" onclick="toggleModal('addTaskModal', true)"><i class="fas fa-plus"></i> Add</button>
+                        <button style="background:#17a2b8" onclick="toggleModal('addTaskModal', true)"><i class="fas fa-plus"></i> Add</button>
                     </div>
                 </div>
                 <div id="preStartAdminControls"><button style="background:#17a2b8; margin-top:10px;" onclick="toggleModal('addTaskModal', true)"><i class="fas fa-plus"></i> Yeni Task Ekle</button></div>
@@ -361,15 +343,10 @@
         <div class="modal-content">
             <div class="modal-header"><h3>Yeni Oda Oluştur</h3><span class="modal-close" onclick="toggleModal('createRoomModal', false)">&times;</span></div>
             <input type="text" id="adminName" placeholder="Adınız">
+            <div class="avatar-selection" id="adminAvatars"></div>
             <input type="text" id="roomName" placeholder="Oda Adı">
-            <div class="admin-option">
-                <input type="checkbox" id="freeTextCheck" onchange="document.getElementById('optArea').style.display = this.checked ? 'none' : 'block'">
-                <label for="freeTextCheck">Serbest Metin Oylaması (Free Text)</label>
-            </div>
-            <div id="optArea">
-                <label style="font-size:0.8em; font-weight:bold; color:#666">Puan Seçenekleri</label>
-                <input type="text" id="estimateOptions" value="0.5, 1, 2, 3, 5, 8, 13, 21, ?, ☕">
-            </div>
+            <div class="admin-option"><input type="checkbox" id="freeTextCheck" onchange="document.getElementById('optArea').style.display = this.checked ? 'none' : 'block'"><label for="freeTextCheck">Free Text Oylama</label></div>
+            <div id="optArea"><input type="text" id="estimateOptions" value="0.5, 1, 2, 3, 5, 8, 13, 21, ?, ☕"></div>
             <button onclick="startSession(true)">Odayı Başlat</button>
         </div>
     </div>
@@ -377,146 +354,79 @@
     <div id="joinRoomModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header"><h3>Odaya Katıl</h3><span class="modal-close" onclick="toggleModal('joinRoomModal', false)">&times;</span></div>
-            <input type="text" id="participantName" placeholder="Adınız"><input type="text" id="roomIdInput" placeholder="Oda ID"><button onclick="startSession(false)">Giriş Yap</button>
+            <input type="text" id="participantName" placeholder="Adınız">
+            <div class="avatar-selection" id="joinAvatars"></div>
+            <input type="text" id="roomIdInput" placeholder="Oda ID">
+            <button onclick="startSession(false)">Giriş Yap</button>
         </div>
     </div>
 
-    <div id="addTaskModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header"><h3>Yeni Task Ekle</h3><span class="modal-close" onclick="toggleModal('addTaskModal', false)">&times;</span></div>
-            <input type="text" id="instantTask" placeholder="Task başlığını girin..."><button onclick="addInstantTask()">Ekle</button>
-        </div>
-    </div>
-
-    <div id="editTaskModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header"><h3>Task Düzenle</h3><span class="modal-close" onclick="toggleModal('editTaskModal', false)">&times;</span></div>
-            <input type="hidden" id="editTaskId"><input type="text" id="editTaskTitle"><button onclick="updateTask()">Güncelle</button>
-        </div>
-    </div>
-
-    <div id="confirmModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header"><h3 id="confirmTitle">Emin misiniz?</h3><span class="modal-close" onclick="closeConfirm(false)">&times;</span></div>
-            <p id="confirmMessage" style="margin: 15px 0; color: #555;"></p>
-            <div style="display: flex; gap: 10px;"><button id="confirmBtn" class="btn-danger" onclick="closeConfirm(true)">Evet</button><button class="secondary" onclick="closeConfirm(false)">İptal</button></div>
-        </div>
-    </div>
+    <div id="addTaskModal" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h3>Ekle</h3><span class="modal-close" onclick="toggleModal('addTaskModal', false)">&times;</span></div><input type="text" id="instantTask"><button onclick="addInstantTask()">Ekle</button></div></div>
+    <div id="editTaskModal" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h3>Düzenle</h3><span class="modal-close" onclick="toggleModal('editTaskModal', false)">&times;</span></div><input type="hidden" id="editTaskId"><input type="text" id="editTaskTitle"><button onclick="updateTask()">Güncelle</button></div></div>
+    <div id="confirmModal" class="modal-overlay"><div class="modal-content"><h3 id="confirmTitle"></h3><p id="confirmMessage"></p><button class="btn-danger" onclick="closeConfirm(true)">Evet</button><button class="secondary" onclick="closeConfirm(false)">Hayır</button></div></div>
 
     <script>
         const connection = new signalR.HubConnectionBuilder().withUrl("/pokerHub").withAutomaticReconnect().build();
-        let activeRoomId = "";
-        let lastRoomState = null;
-        let confirmCallback = null;
+        let activeRoomId = "", lastRoomState = null, confirmCallback = null, selectedAvatar = "";
+        const avatarlar = ["/images/avatar1.png", "/images/avatar2.png", "/images/avatar3.png", "/images/avatar4.png", "/images/avatar5.png"];
 
         window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            const rId = params.get('room');
-            if (rId) {
-                const roomInput = document.getElementById("roomIdInput");
-                roomInput.value = rId;
-                roomInput.disabled = true;
-                roomInput.style.backgroundColor = "#e9ecef";
-                toggleModal('joinRoomModal', true);
-            }
+            initAvatarSelection('adminAvatars'); initAvatarSelection('joinAvatars');
+            const rId = new URLSearchParams(window.location.search).get('room');
+            if (rId) { document.getElementById("roomIdInput").value = rId; document.getElementById("roomIdInput").disabled = true; toggleModal('joinRoomModal', true); }
         };
 
-        // TOAST MANAGEMENT
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            const icon = type === 'warning' ? 'exclamation-triangle' : 'info-circle';
-            toast.innerHTML = `<i class="fas fa-${icon}"></i> <span>${message}</span>`;
-
-            container.appendChild(toast);
-            setTimeout(() => toast.classList.add('show'), 100);
-
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
+        function initAvatarSelection(id) {
+            const c = document.getElementById(id);
+            c.innerHTML = avatarlar.map(url => `<img src="${url}" class="avatar-choice" onclick="selectAvatar(this, '${url}')" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'">`).join('');
+            selectAvatar(c.querySelector('img'), avatarlar[0]);
         }
 
-        connection.on("PeekStatusChanged", (isPeeking) => {
-            if (isPeeking) {
-                showToast("Admin şu an oyları anlık olarak görüyor.", "warning");
-            } else {
-                showToast("Admin anlık izlemeyi kapattı.", "info");
-            }
-            refreshCurrentRoomUI();
-        });
-
-        async function onPeekChange() {
-            const isChecked = document.getElementById("peekVotesCheckbox").checked;
-            await connection.invoke("TogglePeekStatus", activeRoomId, isChecked);
+        function selectAvatar(el, url) { el.parentElement.querySelectorAll('.avatar-choice').forEach(i => i.classList.remove('selected')); el.classList.add('selected'); selectedAvatar = url; }
+        function showToast(m, t = 'info') {
+            const c = document.getElementById('toastContainer');
+            const d = document.createElement('div'); d.className = `toast toast-${t}`; d.innerHTML = `<span>${m}</span>`;
+            c.appendChild(d); setTimeout(() => d.classList.add('show'), 100);
+            setTimeout(() => { d.classList.remove('show'); setTimeout(() => d.remove(), 300); }, 4000);
         }
+
+        connection.on("PeekStatusChanged", (p) => { showToast(p ? "Admin oyları anlık izliyor!" : "Anlık izleme kapandı."); refreshCurrentRoomUI(); });
+        async function onPeekChange() { await connection.invoke("TogglePeekStatus", activeRoomId, document.getElementById("peekVotesCheckbox").checked); }
 
         function toggleModal(id, show, data = null) {
-            const modal = document.getElementById(id);
-            modal.style.display = show ? "flex" : "none";
-            if (!show) {
-                const inputs = modal.querySelectorAll('input[type="text"]:not(#estimateOptions)');
-                inputs.forEach(i => { if (!i.disabled) i.value = ""; });
-            } else {
-                if (id === 'editTaskModal' && data) {
-                    document.getElementById("editTaskId").value = data.id;
-                    document.getElementById("editTaskTitle").value = data.title;
-                }
-                const firstInput = modal.querySelector('input[type="text"]:not(#estimateOptions):not([disabled])');
-                if (firstInput) firstInput.focus();
-            }
+            const m = document.getElementById(id); m.style.display = show ? "flex" : "none";
+            if (!show) m.querySelectorAll('input[type="text"]:not(#estimateOptions)').forEach(i => { if (!i.disabled) i.value = "" });
+            else if (id === 'editTaskModal' && data) { document.getElementById("editTaskId").value = data.id; document.getElementById("editTaskTitle").value = data.title; }
         }
 
-        function openConfirm(title, message, callback) {
-            document.getElementById("confirmTitle").innerText = title;
-            document.getElementById("confirmMessage").innerText = message;
-            confirmCallback = callback;
-            document.getElementById("confirmModal").style.display = "flex";
-        }
-
-        function closeConfirm(result) {
-            document.getElementById("confirmModal").style.display = "none";
-            if (result && confirmCallback) confirmCallback();
-            confirmCallback = null;
-        }
+        function openConfirm(t, m, c) { document.getElementById("confirmTitle").innerText = t; document.getElementById("confirmMessage").innerText = m; confirmCallback = c; document.getElementById("confirmModal").style.display = "flex"; }
+        function closeConfirm(r) { document.getElementById("confirmModal").style.display = "none"; if (r && confirmCallback) confirmCallback(); confirmCallback = null; }
 
         async function startSession(isAdmin) {
-            const nameId = isAdmin ? "adminName" : "participantName";
-            const user = document.getElementById(nameId).value;
-            if (!user) return alert("Lütfen adınızı girin");
+            const user = document.getElementById(isAdmin ? "adminName" : "participantName").value;
+            if (!user) return alert("Adınızı girin");
             try {
                 if (connection.state === "Disconnected") await connection.start();
                 if (isAdmin) {
-                    const rName = document.getElementById("roomName").value;
-                    const options = document.getElementById("estimateOptions").value.split(',').map(x => x.trim()).filter(x => x);
-                    const freeText = document.getElementById("freeTextCheck").checked;
-                    activeRoomId = await connection.invoke("CreateRoom", rName, user, [], options, freeText);
-                    const link = window.location.origin + window.location.pathname + "?room=" + activeRoomId;
-                    document.getElementById("shareLink").innerText = link;
-                    document.getElementById("shareArea").style.display = "block";
+                    const rN = document.getElementById("roomName").value, opts = document.getElementById("estimateOptions").value.split(',').map(x => x.trim()).filter(x => x), fT = document.getElementById("freeTextCheck").checked;
+                    activeRoomId = await connection.invoke("CreateRoom", rN, user, selectedAvatar, [], opts, fT);
+                    document.getElementById("shareLink").innerText = window.location.origin + window.location.pathname + "?room=" + activeRoomId;
                     toggleModal('createRoomModal', false);
                 } else {
                     activeRoomId = document.getElementById("roomIdInput").value;
                     toggleModal('joinRoomModal', false);
                 }
-                await connection.invoke("JoinRoom", activeRoomId, user);
-                document.getElementById("loginArea").style.display = "none";
-                document.getElementById("gameArea").style.display = "block";
-            } catch (err) { alert("Hata: " + err.message); }
+                await connection.invoke("JoinRoom", activeRoomId, user, selectedAvatar);
+                document.getElementById("loginArea").style.display = "none"; document.getElementById("gameArea").style.display = "block";
+            } catch (err) { alert(err.message); }
         }
 
-        connection.on("NewTaskTriggered", () => {
-            document.querySelectorAll('.poker-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById("voteInputContainer").innerHTML = "";
-        });
-
+        connection.on("NewTaskTriggered", () => { document.querySelectorAll('.poker-card').forEach(c => c.classList.remove('selected')); document.getElementById("voteInputContainer").innerHTML = ""; });
         function refreshCurrentRoomUI() { if (lastRoomState) renderRoom(lastRoomState); }
         connection.on("RoomUpdated", (room) => { if (room.roomId !== activeRoomId) return; lastRoomState = room; renderRoom(room); });
 
         function renderRoom(room) {
             const isAdmin = connection.connectionId === room.adminConnectionId;
-            // peekVotesCheckbox değerini DOM'dan okuyoruz
             const peekEnabled = document.getElementById("peekVotesCheckbox")?.checked || false;
 
             if (isAdmin) {
@@ -524,90 +434,74 @@
                 document.getElementById("startBtnArea").style.display = room.isStarted ? "none" : "block";
                 document.getElementById("activeAdminControls").style.display = room.isStarted ? "block" : "none";
                 document.getElementById("preStartAdminControls").style.display = room.isStarted ? "none" : "block";
-                const adminTaskHtml = room.tasks.map((t, index) => {
-                    const canEditOrDelete = index >= room.currentTaskIndex && !(index === room.currentTaskIndex && room.isVotesRevealed);
-                    return `<div class="task-item"><span>${index + 1}. ${t.title} ${index === room.currentTaskIndex && room.isStarted ? '<span class="badge">Aktif</span>' : ''}</span>
-                        <div>${canEditOrDelete ? `<button class="icon-btn btn-warning" onclick="toggleModal('editTaskModal', true, {id:'${t.id}', title:'${t.title}'})"><i class="fas fa-edit"></i></button>
+                document.getElementById("adminTaskList").innerHTML = room.tasks.map((t, i) => {
+                    const canED = i >= room.currentTaskIndex && !(i === room.currentTaskIndex && room.isVotesRevealed);
+                    return `<div class="task-item"><span>${i + 1}. ${t.title} ${i === room.currentTaskIndex && room.isStarted ? '<span class="badge">Aktif</span>' : ''}</span>
+                        <div>${canED ? `<button class="icon-btn btn-warning" onclick="toggleModal('editTaskModal', true, {id:'${t.id}', title:'${t.title}'})"><i class="fas fa-edit"></i></button>
                         <button class="icon-btn btn-danger" onclick="safeDeleteTask('${t.id}')"><i class="fas fa-trash-alt"></i></button>` : ''}</div></div>`;
                 }).join('');
-                document.getElementById("adminTaskList").innerHTML = adminTaskHtml;
             }
 
             document.getElementById("waitingArea").style.display = room.isStarted ? "none" : (isAdmin ? "none" : "block");
             document.getElementById("votingArea").style.display = room.isStarted ? "block" : "none";
 
-            const totalTasks = room.tasks.length;
-            const currentIdx = totalTasks > 0 ? Math.min(room.currentTaskIndex + 1, totalTasks) : 0;
-            document.getElementById("taskCounterDisplay").innerText = `Task: ${currentIdx} / ${totalTasks}`;
-            document.getElementById("currentTaskTitle").innerText = room.activeTask ? room.activeTask.title : (totalTasks > 0 && room.isStarted ? "Oylama Bitti" : "Task Bekleniyor...");
+            // Ortalama Hesaplama ve Gösterim
+            const avgArea = document.getElementById("averageDisplayArea");
+            if (room.isVotesRevealed && !room.isFreeText) {
+                const vals = room.players.map(p => parseFloat(p.vote)).filter(v => !isNaN(v));
+                if (vals.length > 0) {
+                    const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+                    avgArea.innerHTML = `<div class="avg-display"><strong><i class="fas fa-chart-bar"></i> Ortalama Tahmin: ${avg}</strong></div>`;
+                } else avgArea.innerHTML = "";
+            } else avgArea.innerHTML = "";
+
+            const total = room.tasks.length, current = total > 0 ? Math.min(room.currentTaskIndex + 1, total) : 0;
+            document.getElementById("taskCounterDisplay").innerText = `Task: ${current} / ${total}`;
+            document.getElementById("currentTaskTitle").innerText = room.activeTask ? room.activeTask.title : (total > 0 && room.isStarted ? "Oylama Bitti" : "Task Bekleniyor...");
 
             const container = document.getElementById("voteInputContainer");
-            if (room.isVotesRevealed || !room.activeTask) {
-                container.innerHTML = "";
-            }
+            if (room.isVotesRevealed || !room.activeTask) container.innerHTML = "";
             else if (container.innerHTML === "") {
-                if (room.isFreeText) {
-                    container.innerHTML = `<div class="free-text-vote-area">
-                            <input type="text" id="freeTextInput" placeholder="Puan/Efor değerini girin...">
-                            <button onclick="sendFreeTextVote()">Gönder</button>
-                        </div>`;
-                } else {
-                    container.innerHTML = `<div class="card-grid" id="cardGrid">${room.estimateOptions.map(opt => `<div class="card poker-card" onclick="vote(this, '${opt}')">${opt}</div>`).join('')}</div>`;
-                }
+                if (room.isFreeText) container.innerHTML = `<div class="free-text-vote-area"><input type="text" id="freeTextInput" placeholder="Efor..."><button onclick="sendFreeTextVote()">Gönder</button></div>`;
+                else container.innerHTML = `<div class="card-grid">${room.estimateOptions.map(opt => `<div class="card poker-card" onclick="vote(this, '${opt}')">${opt}</div>`).join('')}</div>`;
             }
 
-            const list = document.getElementById("playersList");
-            list.innerHTML = room.players.map(p => {
+            document.getElementById("playersList").innerHTML = room.players.map(p => {
                 let d = "⏳";
                 if (room.isVotesRevealed) d = p.vote || '-';
                 else if (p.hasVoted) d = (isAdmin && peekEnabled) ? `👁️ ${p.vote}` : "✅";
                 if (!room.isStarted) d = "";
-                return `<div class="player-row"><span>${p.name} ${p.connectionId === room.adminConnectionId ? '<span class="badge">Admin</span>' : ''}</span><strong>${d}</strong></div>`;
+                return `<div class="player-row"><div class="player-info"><img src="${p.avatarUrl}" class="avatar-small"><span>${p.name} ${p.connectionId === room.adminConnectionId ? '<span class="badge">Admin</span>' : ''}</span></div><strong>${d}</strong></div>`;
             }).join('');
 
-            const historyList = document.getElementById("historyList");
-            historyList.innerHTML = room.history.map(h => `<div class="history-item"><div><strong>${h.title}</strong><div class="history-votes">${h.results.map(r => `${r.name}: ${r.vote || '-'}`).join(' | ')}</div></div></div>`).reverse().join('');
+            document.getElementById("historyList").innerHTML = room.history.map(h => `
+                    <div class="history-item">
+                        <div>
+                            <strong>${h.title}</strong>
+                            ${h.average ? `<span class="avg-badge" title="Ortalama Puan"><i class="fas fa-calculator"></i> ${h.average}</span>` : ''}
+                            <div class="history-votes">${h.results.map(r => `${r.name}: ${r.vote || '-'}`).join(' | ')}</div>
+                        </div>
+                    </div>`).reverse().join('');
         }
 
-        connection.on("Error", (msg) => alert(msg));
         async function vote(el, val) {
-            if (!lastRoomState || !lastRoomState.isStarted || !lastRoomState.activeTask) return;
+            if (!lastRoomState?.isStarted || !lastRoomState?.activeTask) return;
             document.querySelectorAll('.poker-card').forEach(c => c.classList.remove('selected'));
             if (el) el.classList.add('selected');
             await connection.invoke("SendVote", activeRoomId, val);
         }
-
-        async function sendFreeTextVote() {
-            const val = document.getElementById("freeTextInput").value;
-            if (!val) return alert("Lütfen bir değer girin!");
-            await vote(null, val);
-        }
-
-        async function invokeServer(method) { await connection.invoke(method, activeRoomId); }
+        async function sendFreeTextVote() { const v = document.getElementById("freeTextInput").value; if (!v) return alert("Değer girin!"); await vote(null, v); }
+        async function invokeServer(m) { await connection.invoke(m, activeRoomId); }
         async function safeNextTask() {
             if (!lastRoomState) return;
-            const anyVotes = lastRoomState.players.some(p => p.hasVoted);
-            const votesRevealed = lastRoomState.isVotesRevealed;
-            if (!anyVotes) {
-                openConfirm("Uyarı", "Henüz kimse oy vermedi. Geçmek istediğinize emin misiniz?", async () => { await invokeServer('NextTask'); });
-                return;
-            }
-            if (anyVotes && !votesRevealed) {
-                openConfirm("Dikkat", "Oylama sonuçlarını paylaşmadınız. Geçmek istediğinize emin misiniz?", async () => { await invokeServer('NextTask'); });
-                return;
-            }
-            await invokeServer('NextTask');
+            const anyV = lastRoomState.players.some(p => p.hasVoted);
+            if (!anyV) openConfirm("Uyarı", "Kimse oy vermedi. Geçilsin mi?", async () => await invokeServer('NextTask'));
+            else if (!lastRoomState.isVotesRevealed) openConfirm("Dikkat", "Sonuçları paylaşmadınız. Geçilsin mi?", async () => await invokeServer('NextTask'));
+            else await invokeServer('NextTask');
         }
-        async function safeDeleteTask(id) { openConfirm("Silme Onayı", "Bu taskı silmek istediğinize emin misiniz?", async () => { await connection.invoke("DeleteTask", activeRoomId, id); }); }
-        async function addInstantTask() {
-            const title = document.getElementById("instantTask").value;
-            if (title) { await connection.invoke("AddTasks", activeRoomId, [title]); toggleModal('addTaskModal', false); }
-        }
-        async function updateTask() {
-            const id = document.getElementById("editTaskId").value;
-            const title = document.getElementById("editTaskTitle").value;
-            if (title) { await connection.invoke("UpdateTask", activeRoomId, id, title); toggleModal('editTaskModal', false); }
-        }
+        async function safeDeleteTask(id) { openConfirm("Silme Onayı", "Silinsin mi?", async () => await connection.invoke("DeleteTask", activeRoomId, id)); }
+        async function addInstantTask() { const t = document.getElementById("instantTask").value; if (t) { await connection.invoke("AddTasks", activeRoomId, [t]); toggleModal('addTaskModal', false); } }
+        async function updateTask() { const id = document.getElementById("editTaskId").value; const t = document.getElementById("editTaskTitle").value; if (t) { await connection.invoke("UpdateTask", activeRoomId, id, t); toggleModal('editTaskModal', false); } }
     </script>
 </body>
 </html>
